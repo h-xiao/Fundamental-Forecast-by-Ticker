@@ -2,7 +2,8 @@
 
 ## Introduction
 This script is part of a larger project, "Stock Analyzer," which includes a Streamlit dashboard with multiple analysis pages. It focuses on forecasting stock fundamentals using Long Short-Term Memory (LSTM) models in Python. The forecasting model clusters similar stocks based on their sector, performs sentiment analysis on 10Q & 10K filings using an LLM, and predicts future values of a company's income statement items.
-The dashboard can be viewed at: https://hxiao.cloud/
+
+The dashboard can be viewed at: [https://hxiao.cloud/](https://hxiao.cloud/)
 
 ## Features
 
