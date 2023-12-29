@@ -97,7 +97,7 @@ class TimeSeriesAnalysis:
         scaler = TimeSeriesScalerMeanVariance(mu=0., std=1.)  # Standardize to have mean 0 and std 1
         scaled_time_series = scaler.fit_transform(df_cluster.T)  # Transpose because the scaler expects shape (n_samples, n_timestamps)
 
-        if n_clusters == False:
+        if self.n_clusters == False:
             # Determine the optimal number of clusters
             optimal_clusters = self.determine_optimal_clusters_kneedle(scaled_time_series, max_num_clusters=10)
 
@@ -395,7 +395,7 @@ class FeatureEngineering:
             ticker_tuple = str(ticker_tuple).replace(',', '')
 
         query1 = f"SELECT ticker, Date, Adj_Close FROM {table} WHERE ticker IN {ticker_tuple} and Date >= '{st_date_fmt}' and Date <= '{end_date_fmt}';"
-        com_ind_df = db_connector.query_database(query1)
+        com_ind_df = self.db_connector.query_database(query1)
         com_ind_df = com_ind_df.pivot(index='Date', columns='ticker', values='Adj_Close')
 
         for ticker in ticker_list:
@@ -537,7 +537,7 @@ def run_ticker_funda_forecast(target_ticker, is_value='Revenue', n_clusters=Fals
         is_values_df, pub_dates_df = preprocessor.adjust_and_pivot(df_adj)
 
         # Add more features like commodities prices, index prices, stock prices, economic indicators
-        feature_engineering = FeatureEngineering(target_ticker, add_com_ind_px_tickers, add_econ_inds)
+        feature_engineering = FeatureEngineering(target_ticker, add_com_ind_px_tickers, add_econ_inds, db_connector)
         is_values_df, pub_dates_df = feature_engineering.add_more_features(is_values_df, pub_dates_df)
 
         # Add sec file sentiment analysis as features for target ticker
