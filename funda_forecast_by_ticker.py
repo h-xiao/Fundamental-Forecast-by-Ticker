@@ -335,10 +335,11 @@ class DataPreprocessor:
 
 
 class FeatureEngineering:
-    def __init__(self, target_ticker, add_com_ind_px_tickers, add_econ_inds):
+    def __init__(self, target_ticker, add_com_ind_px_tickers, add_econ_inds, db_connector):
         self.target_ticker = target_ticker
         self.add_com_ind_px_tickers = add_com_ind_px_tickers
         self.add_econ_inds = add_econ_inds
+        self.db_connector = db_connector
 
     def add_sentiment_features(self, is_values_df, pub_dates_df):
         # list the columns to run sentiment analysis on:
@@ -349,7 +350,7 @@ class FeatureEngineering:
                      'sustainability_initiatives']
 
         query1 = f"SELECT * FROM [sec_files_llm_answer] WHERE ticker='{self.target_ticker}';"
-        llm_df = db_connector.query_database(query1)
+        llm_df = self.db_connector.query_database(query1)
 
         for col in sent_cols:
             llm_df[col + '_sentiment'] = llm_df[col].apply(self.calculate_sentiment)
@@ -423,7 +424,7 @@ class FeatureEngineering:
             ticker_tuple = str(ticker_tuple).replace(',', '')
 
         query1 = f"SELECT [Key], Date, Value FROM econ_data WHERE [Key] IN {ticker_tuple} and Date >= '{st_date_fmt}' and Date <= '{end_date_fmt}';"
-        com_ind_df = db_connector.query_database(query1)
+        com_ind_df = self.db_connector.query_database(query1)
         com_ind_df = com_ind_df.pivot(index='Date', columns='Key', values='Value')
 
         # merge to is_values_df on report date
@@ -438,11 +439,11 @@ class FeatureEngineering:
 
     def add_more_features(self, is_values_df, pub_dates_df):
         # Adjust is_values_df & pub_dates_df to include additional features (addditional col for pub_dates_df will just be report date (pub_dates_df.index) )
-        if len(add_com_ind_px_tickers) > 0:
-            is_values_df, pub_dates_df = query_px_add_to_data(is_values_df, pub_dates_df, self.add_com_ind_px_tickers, table='index_px')
+        if len(self.add_com_ind_px_tickers) > 0:
+            is_values_df, pub_dates_df = self.query_px_add_to_data(is_values_df, pub_dates_df, self.add_com_ind_px_tickers, table='index_px')
 
-        if len(add_econ_inds) > 0:
-            is_values_df, pub_dates_df = query_econ_add_to_data(is_values_df, pub_dates_df, self.add_econ_inds)
+        if len(self.add_econ_inds) > 0:
+            is_values_df, pub_dates_df = self.query_econ_add_to_data(is_values_df, pub_dates_df, self.add_econ_inds)
 
         return is_values_df, pub_dates_df
 
@@ -498,11 +499,11 @@ def run_ticker_funda_forecast(target_ticker, is_value='Revenue', n_clusters=Fals
 
     # Load data from SimFin and database
     sf.set_api_key(config['DEFAULT']['simfin_api_key'])
-    sf.set_data_dir('C:/Users/hanna/Documents/trading/simfin_data/')
+    sf.set_data_dir(config['DEFAULT']['simfin_path'])
     is_qt = sf.load_income(variant='quarterly', market='us')
     is_qt = is_qt.reset_index()
 
-    stock_info = db_connector.query_database("SELECT * FROM [alpha_db].[dbo].[stock_info]")
+    stock_info = db_connector.query_database("SELECT * FROM stock_info")
     df_all = is_qt.merge(stock_info[['ticker', 'industry', 'sector']], left_on='Ticker', right_on='ticker')
 
     # Initialize DataPreprocessor and FeatureEngineering
